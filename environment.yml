@@ -1,0 +1,27 @@
+name: medical-caption
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - pip=23.1.2
+  - pytorch=2.0.1
+  - torchvision=0.15.2
+  - numpy=1.24.3
+  - pandas=2.0.2
+  - pillow=9.5.0
+  - matplotlib=3.7.1
+  - scikit-learn=1.2.2
+  - jupyterlab=4.0.2
+  - ipywidgets=8.0.6
+  - tqdm=4.65.0
+  - pip:
+    - multiversity>=0.1.0  # Adjust version as needed
+    - transformers>=4.30.0
+    - tokenizers>=0.13.3
+    - wandb>=0.15.4  # For experiment tracking (optional)
+    - opencv-python>=4.7.0
+    - albumentations>=1.3.0  # Advanced image augmentations
+    - pydicom>=2.3.1  # For medical DICOM files (if needed)
+    - nibabel>=5.1.0  # For brain imaging files (if needed) 
