@@ -117,7 +117,28 @@ def evaluate_model_bleu(test_dataloader, model):
 
     return bleu_scores
 
+def evaluate_meteor(image_id, generated_caption, reference_caption_dict):
+    """
+    Compute METEOR score for a generated caption using multiple reference captions.
 
+    Args:
+        image_id (str): Image ID.
+        generated_caption (str): Model-generated caption.
+        reference_caption_dict (dict): Dictionary of image_id → list of reference captions.
+
+    Returns:
+        float: METEOR score (0 to 1).
+    """
+    references = reference_caption_dict.get(image_id, [])  # Get reference captions
+    if not references:
+        print(f"Warning: No reference captions found for image_id {image_id}")
+        return 0.0  # Return 0 if no references exist
+
+    references_tokenized = [ref.split() for ref in references]  # Tokenized reference captions
+    hypothesis = generated_caption.split()  # Tokenized generated caption
+
+    # Compute METEOR score using NLTK's implementation
+    return meteor_score(references_tokenized, hypothesis)
 
 
 if __name__ == "__main__":
