@@ -119,4 +119,5 @@ if __name__ == "__main__":
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=4, shuffle=True)
 
     # 6. Train the model
-    train(model, dataloader, epochs=2)
+    train(model, dataloader, epochs=1)
+
