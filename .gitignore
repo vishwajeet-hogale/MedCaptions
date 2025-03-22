@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+MultiCaRe_Dataset/
+multiversity/
+medical_datasets/
+MediCareBert/
 # C extensions
 *.so
 
