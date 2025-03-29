@@ -98,8 +98,8 @@ def train(model, dataloader, epochs=1):
             optimizer.step()
 
             print(f"Epoch {epoch+1} | Loss = {loss.item():.4f}")
-    model.save_pretrained("MediCareBert")
-    tokenizer.save_pretrained("MediCareBert")    
+    model.save_pretrained("MediCareBertModel")
+    tokenizer.save_pretrained("MediCareBertTokenizer")    
 
 if __name__ == "__main__":
     # 1. Get your custom loader
