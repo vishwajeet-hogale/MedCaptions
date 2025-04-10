@@ -12,8 +12,8 @@ print(f"Using device: {device}")
 os.makedirs("checkpoints", exist_ok=True) 
 
 # Load tokenizer & BERT
-tokenizer = BertTokenizer.from_pretrained("MediCareBert")
-bert = BertModel.from_pretrained("MediCareBert").to(device).eval()
+tokenizer = BertTokenizer.from_pretrained("MediCareBertTokenizer")
+bert = BertModel.from_pretrained("MediCareBertModel").to(device).eval()
 
 # Models
 decoder = CaptionLSTM().to(device)
