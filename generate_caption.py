@@ -1,8 +1,8 @@
 import torch
 import torch.nn.functional as F
 from transformers import BertTokenizer, BertModel
-from caption_decoder import CaptionLSTM
-from encoder_deit import DeiTMedicalEncoder
+from caption_lstm import CaptionLSTM
+from deit_encoder import DeiTMedicalEncoder
 from torchvision import transforms
 from PIL import Image
 import os
@@ -85,7 +85,7 @@ def generate_caption(image_path, max_len=20, temperature=0.0):
 
 # Test
 if __name__ == "__main__":
-    img_path = "medical_datasets/brain_tumor_mri/images/sample1.jpg"
+    img_path = "/Users/vishwajeethogale/Desktop/Master's/Sem2/CS6140-Machine Learning/MedCaptions/medical_datasets/brain_tumor_mri_1742661954/images/PMC1/PMC10/PMC10017521_fgene-14-1077625-g002_A_1_4.webp"
     if os.path.exists(img_path):
         print("Generated Caption:", generate_caption(img_path))
     else:

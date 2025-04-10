@@ -4,10 +4,12 @@ from caption_lstm import CaptionLSTM
 from deit_encoder import DeiTMedicalEncoder
 from dataloader import get_multicare_dataloader
 from tqdm import tqdm
+import os
 
 # DEVICE SETUP
 device = torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
 print(f"Using device: {device}")
+os.makedirs("checkpoints", exist_ok=True) 
 
 # Load tokenizer & BERT
 tokenizer = BertTokenizer.from_pretrained("MediCareBert")
@@ -45,7 +47,7 @@ def get_bert_embeddings(captions):
         out = bert(**inputs)
     return out.last_hidden_state  # [batch, seq_len, 768]
 
-def train_caption_model(epochs=1):
+def train_caption_model(epochs=5):
     decoder.train()
     encoder.train()
 
