@@ -1,158 +1,120 @@
+import torch
 import nltk
+from transformers import BertTokenizer, BertModel
+from caption_lstm import CaptionLSTM
+from deit_encoder import DeiTMedicalEncoder
+from dataloader import get_multicare_dataloader
+from evaluations import compute_bleu, compute_rouge, compute_meteor
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
-from nltk.translate.meteor_score import meteor_score
-import random
-import os
-import json
-from collections import defaultdict
+from rouge_score import rouge_scorer
+nltk.download('punkt')
 
-nltk.download('wordnet')  # Required for METEOR
 
-def generate_synthetic_references(original_caption, num_variants=3):
-    """
-    Generate alternative captions using simple word replacements.
-    
-    Args:
-        original_caption (str): The original caption for the image.
-        num_variants (int): Number of synthetic reference captions to generate.
-        
-    Returns:
-        list: A list of alternative captions.
-    """
-    synonym_dict = {
-        "MRI": ["magnetic resonance imaging", "scan", "MRI scan"],
-        "tumor": ["mass", "abnormality", "growth"],
-        "brain": ["head", "cerebrum"],
-        "showing": ["depicting", "revealing"],
-        "image": ["picture", "photo", "scan"],
-        "of": ["with", "containing"],
-        "a": ["one", "an"],
-        "is": ["shows", "demonstrates"]
+device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
+print(f"Using device: {device}")
+
+# Load BERT tokenizer/model
+tokenizer = BertTokenizer.from_pretrained("MediCareBertTokenizer")
+bert_model = BertModel.from_pretrained("MediCareBertModel").to(device).eval()
+
+# Load encoder and decoder
+encoder = DeiTMedicalEncoder(embed_size=768)
+decoder = CaptionLSTM(hidden_size=1024, num_layers=2)
+
+# Load checkpoint
+checkpoint = torch.load("checkpoints/checkpoint_epoch_4.pt", map_location=device)
+encoder.load_state_dict(checkpoint["encoder"])
+decoder.load_state_dict(checkpoint["decoder"])
+
+encoder.to(device).eval()
+decoder.to(device).eval()
+
+# Dummy token IDs for simplicity
+start_token = tokenizer.cls_token_id
+end_token = tokenizer.sep_token_id
+
+def generate_caption(image_tensor, max_len=30):
+    """Generate a caption from image using encoder + decoder."""
+    with torch.no_grad():
+        features = encoder(image_tensor.unsqueeze(0).to(device))
+        input_token = torch.zeros((1, 1, 768)).to(device)
+        output = decoder(input_token, features)  # Replace this with actual decoding logic
+        return "Generated caption text here."  # Placeholder for actual caption
+
+def compute_bleu_all(reference, hypothesis):
+    """Return BLEU-1 to BLEU-4 scores as a tuple."""
+    ref_tokens = [nltk.word_tokenize(reference.lower())]
+    hyp_tokens = nltk.word_tokenize(hypothesis.lower())
+    smoothie = SmoothingFunction().method4
+
+    bleu1 = sentence_bleu(ref_tokens, hyp_tokens, weights=(1, 0, 0, 0), smoothing_function=smoothie)
+    bleu2 = sentence_bleu(ref_tokens, hyp_tokens, weights=(0.5, 0.5, 0, 0), smoothing_function=smoothie)
+    bleu3 = sentence_bleu(ref_tokens, hyp_tokens, weights=(0.33, 0.33, 0.33, 0), smoothing_function=smoothie)
+    bleu4 = sentence_bleu(ref_tokens, hyp_tokens, weights=(0.25, 0.25, 0.25, 0.25), smoothing_function=smoothie)
+
+    return bleu1, bleu2, bleu3, bleu4
+
+def compute_rouge_all(reference, hypothesis):
+    scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'], use_stemmer=True)
+    scores = scorer.score(reference, hypothesis)
+    return {
+        'rouge1': scores['rouge1'].fmeasure,
+        'rouge2': scores['rouge2'].fmeasure,
+        'rougeL': scores['rougeL'].fmeasure,
     }
-    
-    words = original_caption.split()
-    alternative_captions = [original_caption]  # Keep the original caption
 
-    for _ in range(num_variants):  # Generate multiple variations
-        new_caption = [
-            random.choice(synonym_dict.get(word, [word])) for word in words
-        ]
-        alternative_captions.append(" ".join(new_caption))
-    
-    return alternative_captions
+def evaluate(loader):
+    bleu_1_all, bleu_2_all, bleu_3_all, bleu_4_all = [], [], [], []
+    rouge_1_all, rouge_2_all, rouge_l_all = [], [], []
+    meteor_all = []
 
+    batch = next(iter(loader))
+    images = batch["image"].to(device)
+    captions = batch["caption"]
 
-def build_reference_caption_dict_from_dataloader(dataloader):
-    """
-    Build a dictionary mapping image_id to generated reference captions from the test DataLoader.
+    for i in range(len(images)):
+        reference = captions[i]
+        hypothesis = generate_caption(images[i])
 
-    Args:
-        dataloader (DataLoader): PyTorch DataLoader for test dataset.
+        # BLEU
+        b1, b2, b3, b4 = compute_bleu_all(reference, hypothesis)
+        bleu_1_all.append(b1)
+        bleu_2_all.append(b2)
+        bleu_3_all.append(b3)
+        bleu_4_all.append(b4)
 
-    Returns:
-        dict: Dictionary where keys are image_ids and values are lists of generated reference captions.
-    """
-    reference_dict = {}
+        # ROUGE
+        rouge_scores = compute_rouge_all(reference, hypothesis)
+        rouge_1_all.append(rouge_scores['rouge1'])
+        rouge_2_all.append(rouge_scores['rouge2'])
+        rouge_l_all.append(rouge_scores['rougeL'])
 
-    for batch in dataloader:  # Iterate through the test set
-        image_ids = batch['image_id']  # List of image IDs
-        captions = batch['caption']    # Corresponding captions
+        # METEOR
+        meteor = compute_meteor(reference, hypothesis)
+        meteor_all.append(meteor)
 
-        for image_id, caption in zip(image_ids, captions):
-            reference_dict[image_id] = generate_synthetic_references(caption)  # Generate reference captions
+        print(f"\nSample {i+1}")
+        print(f"Reference: {reference}")
+        print(f"Hypothesis: {hypothesis}")
+        print(f"BLEU-1: {b1:.4f} | BLEU-2: {b2:.4f} | BLEU-3: {b3:.4f} | BLEU-4: {b4:.4f}")
+        print(f"ROUGE-1: {rouge_scores['rouge1']:.4f} | ROUGE-2: {rouge_scores['rouge2']:.4f} | ROUGE-L: {rouge_scores['rougeL']:.4f}")
+        print(f"METEOR: {meteor:.4f}")
 
-    return reference_dict
-def evaluate_bleu(image_id, generated_caption, reference_caption_dict, n_gram=4):
-    """
-    Compute BLEU score for a generated caption using multiple reference captions.
-
-    Args:
-        image_id (str): Image ID.
-        generated_caption (str): Model-generated caption.
-        reference_caption_dict (dict): Dictionary of image_id → list of generated reference captions.
-        n_gram (int): Max n-gram to consider (1 for BLEU-1, 4 for BLEU-4).
-
-    Returns:
-        float: BLEU score (0 to 1).
-    """
-    references = reference_caption_dict.get(image_id, [])  # Get reference captions
-    if not references:
-        print(f"Warning: No reference captions found for image_id {image_id}")
-        return 0.0  # Return 0 if no references exist
-
-    references_tokenized = [ref.split() for ref in references]  # Tokenize reference captions
-    hypothesis = generated_caption.split()  # Tokenize generated caption
-
-    smoothing = SmoothingFunction().method1  # Helps with short sentences
-
-    return sentence_bleu(references_tokenized, hypothesis, weights=[1/n_gram]*n_gram, smoothing_function=smoothing)
-def evaluate_model_bleu(test_dataloader, model):
-    """
-    Evaluate a model's captioning performance on the test set using BLEU scores.
-
-    Args:
-        test_dataloader (DataLoader): PyTorch DataLoader for test dataset.
-        model: The captioning model to evaluate.
-
-    Returns:
-        dict: Dictionary where keys are image_ids and values are BLEU scores.
-    """
-    # Step 1: Generate reference captions for the test dataset
-    reference_caption_dict = build_reference_caption_dict_from_dataloader(test_dataloader)
-
-    # Step 2: Generate captions using the model
-    bleu_scores = {}
-
-    for batch in test_dataloader:
-        images = batch['image']  # Extract images
-        image_ids = batch['image_id']  # Extract image IDs
-
-        # Generate captions using the model
-        generated_captions = model.generate_caption(images)  # Assuming model has a `generate_caption` method
-
-        # Step 3: Compute BLEU scores
-        for i, image_id in enumerate(image_ids):
-            bleu_score = evaluate_bleu(image_id, generated_captions[i], reference_caption_dict)
-            bleu_scores[image_id] = bleu_score  # Store BLEU score per image
-
-    return bleu_scores
-
-def evaluate_meteor(image_id, generated_caption, reference_caption_dict):
-    """
-    Compute METEOR score for a generated caption using multiple reference captions.
-
-    Args:
-        image_id (str): Image ID.
-        generated_caption (str): Model-generated caption.
-        reference_caption_dict (dict): Dictionary of image_id → list of reference captions.
-
-    Returns:
-        float: METEOR score (0 to 1).
-    """
-    references = reference_caption_dict.get(image_id, [])  # Get reference captions
-    if not references:
-        print(f"Warning: No reference captions found for image_id {image_id}")
-        return 0.0  # Return 0 if no references exist
-
-    references_tokenized = [ref.split() for ref in references]  # Tokenized reference captions
-    hypothesis = generated_caption.split()  # Tokenized generated caption
-
-    # Compute METEOR score using NLTK's implementation
-    return meteor_score(references_tokenized, hypothesis)
+    print("\n=== AVERAGE METRICS ===")
+    print(f"BLEU-1: {sum(bleu_1_all)/len(bleu_1_all):.4f}")
+    print(f"BLEU-2: {sum(bleu_2_all)/len(bleu_2_all):.4f}")
+    print(f"BLEU-3: {sum(bleu_3_all)/len(bleu_3_all):.4f}")
+    print(f"BLEU-4: {sum(bleu_4_all)/len(bleu_4_all):.4f}")
+    print(f"ROUGE-1: {sum(rouge_1_all)/len(rouge_1_all):.4f}")
+    print(f"ROUGE-2: {sum(rouge_2_all)/len(rouge_2_all):.4f}")
+    print(f"ROUGE-L: {sum(rouge_l_all)/len(rouge_l_all):.4f}")
+    print(f"METEOR: {sum(meteor_all)/len(meteor_all):.4f}")
 
 
 if __name__ == "__main__":
-
-
-    # print(f"BLEU Score: {bleu_score:.4f}")
-    # print(f"METEOR Score: {meteor_score_val:.4f}")
-    
-    # # Assuming `test_dataloader` is already defined
-    # # Assuming `model` has a `.generate_caption(images)` method
-
-    # bleu_results = evaluate_model_bleu(test_dataloader, model)
-
-    # # Print BLEU scores for the first few images
-    # for image_id, score in list(bleu_results.items())[:5]:
-    #     print(f"Image ID: {image_id}, BLEU Score: {score:.4f}")
-    pass
+    loader = get_multicare_dataloader(
+        dataset_name='med_test',
+        batch_size=4,
+        create_new=False
+    )
+    evaluate(loader)

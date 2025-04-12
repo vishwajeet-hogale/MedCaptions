@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
 
 class DeiTMedicalEncoder(nn.Module):
-    def __init__(self, embed_size=768, model_name='deit_small_patch16_224', pretrained=True):
+    def __init__(self, embed_size=384, model_name='deit_small_patch16_224', pretrained=True):
         """
         Medical image encoder based on DeiT (Data-efficient image Transformer)
         
