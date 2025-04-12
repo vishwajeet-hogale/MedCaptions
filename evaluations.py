@@ -21,8 +21,8 @@ print(f"Using device: {device}")
 # ===========================
 # LOAD TOKENIZER & MODELS
 # ===========================
-tokenizer = BertTokenizer.from_pretrained("MediCareBertTokenizer")
-bert_model = BertModel.from_pretrained("MediCareBertModel").to(device).eval()
+tokenizer = BertTokenizer.from_pretrained("./MediCareBert")
+bert_model = BertModel.from_pretrained("./MediCareBert").to(device).eval()
 
 encoder = DeiTMedicalEncoder(embed_size=768)
 decoder = CaptionLSTM(hidden_size=1024, num_layers=2)

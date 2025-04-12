@@ -17,8 +17,8 @@ print(f"Using device: {device}")
 # ====================
 # LOAD BERT MODEL
 # ====================
-tokenizer = BertTokenizer.from_pretrained("MediCareBertTokenizer")
-bert_model = BertModel.from_pretrained("MediCareBertModel").to(device).eval()
+tokenizer = BertTokenizer.from_pretrained("./MediCareBert")
+bert_model = BertModel.from_pretrained("./MediCareBert").to(device).eval()
 
 def get_caption_embedding(caption):
     """Generate BERT CLS embedding for a given caption."""
@@ -31,15 +31,22 @@ def get_caption_embedding(caption):
 # ====================
 # LOAD CAPTION LSTM DECODER
 # ====================
+# Initialize models
 decoder = CaptionLSTM(hidden_size=1024, num_layers=2)
-checkpoint = torch.load("checkpoints/checkpoint_epoch_4.pt", map_location=device)
-decoder.load_state_dict(checkpoint["model_state_dict"])
-decoder.to(device).eval()
+encoder = DeiTMedicalEncoder(embed_size=768)
 
-# ====================
-# LOAD DEIT ENCODER
-# ====================
-encoder = DeiTMedicalEncoder(embed_size=768).to(device).eval()
+# Load checkpoint
+checkpoint = torch.load("checkpoints/checkpoint_epoch_4.pt", map_location=device)
+
+# Load weights
+decoder.load_state_dict(checkpoint["decoder"])
+encoder.load_state_dict(checkpoint["encoder"])
+
+# Move to device and eval mode
+decoder.to(device).eval()
+encoder.to(device).eval()
+
+
 
 # ====================
 # INVERSE TRANSFORM FOR VISUALIZATION
