@@ -17,8 +17,8 @@ print(f"Using device: {device}")
 # ====================
 # LOAD BERT MODEL
 # ====================
-tokenizer = BertTokenizer.from_pretrained("./MediCareBert")
-bert_model = BertModel.from_pretrained("./MediCareBert").to(device).eval()
+tokenizer = BertTokenizer.from_pretrained("./MediCareBertTokenizer")
+bert_model = BertModel.from_pretrained("./MediCareBertModel").to(device).eval()
 
 def get_caption_embedding(caption):
     """Generate BERT CLS embedding for a given caption."""
@@ -36,7 +36,7 @@ decoder = CaptionLSTM(hidden_size=1024, num_layers=2)
 encoder = DeiTMedicalEncoder(embed_size=768)
 
 # Load checkpoint
-checkpoint = torch.load("checkpoints/checkpoint_epoch_4.pt", map_location=device)
+checkpoint = torch.load("checkpoints/checkpoint_epoch_25.pt", map_location=device)
 
 # Load weights
 decoder.load_state_dict(checkpoint["decoder"])
@@ -110,7 +110,7 @@ def test_captioning_batch_from_itself(loader, top_k=3):
 # ====================
 # MAIN EXECUTION
 # ====================
-if __name__ == "__main__":
+if __name__ == "_main_":
     # Define dataset filters
     caption_filters = [
         {'field': 'label', 'string_list': ['mri', 'head']},
