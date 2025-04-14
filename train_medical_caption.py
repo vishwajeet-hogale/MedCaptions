@@ -64,8 +64,8 @@ def compute_info_nce_loss(embeddings_a, embeddings_b, temperature=0.07):
 def load_bert_model():
     """Load BERT model for caption embedding"""
     print("Loading BERT model for caption embedding...")
-    tokenizer = BertTokenizer.from_pretrained("./MediCareBertTokenizer")
-    bert_model = BertModel.from_pretrained("./MediCareBertModel").to(device)
+    tokenizer = BertTokenizer.from_pretrained("/Users/zamfiraluca/Desktop/MedCaptions/MediCareBertTokenizer", local_files_only=True)
+    bert_model = BertModel.from_pretrained("/Users/zamfiraluca/Desktop/MedCaptions/MediCareBertModel").to(device)
     bert_model.eval()  # BERT is used for inference only
     return tokenizer, bert_model
 

@@ -8,7 +8,7 @@
 EPOCHS=${1:-20}
 BATCH_SIZE=${2:-8}  # Reduced batch size for memory constraints
 LEARNING_RATE=${3:-0.0003}
-DATASET="med"  # Base name without '_train' suffix
+DATASET="med1"  # Base name without '_train' suffix
 CHECKPOINT_DIR="checkpoints"
 
 echo "=== Training LSTM Medical Caption Model (Mac Optimized) ==="

@@ -10,7 +10,7 @@ class CaptionLSTM(nn.Module):
 
         # Image feature transformation for hidden state initialization
         self.image_to_hidden = nn.Sequential(
-            nn.Linear(384, hidden_size),
+            nn.Linear(768, hidden_size),
             nn.Tanh()
         )
 
