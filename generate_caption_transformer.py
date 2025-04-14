@@ -72,7 +72,7 @@ inv_normalize = transforms.Normalize(
 # ====================
 # TEST FUNCTION USING BATCH CAPTIONS AS REFERENCE
 # ====================
-def test_captioning_batch_from_itself(encoder, decoder, loader, top_k=3, num_samples=4):
+def test_captioning_batch_from_itself(encoder, decoder, loader, top_k=3, num_samples=4, temperature=0.07):
     batch = next(iter(loader))
     images = batch['image'].to(device)
     captions = batch['caption']
@@ -83,7 +83,9 @@ def test_captioning_batch_from_itself(encoder, decoder, loader, top_k=3, num_sam
     with torch.no_grad():
         caption_embeddings = torch.stack([
             get_caption_embedding(c).squeeze() for c in captions
-        ]).cpu().numpy()
+        ]).to(device)
+        # Normalize caption embeddings for InfoNCE compatibility
+        caption_embeddings = F.normalize(caption_embeddings, p=2, dim=1)
 
     # Step 2: Predict caption embeddings from images
     predicted_embeddings = []
@@ -91,18 +93,18 @@ def test_captioning_batch_from_itself(encoder, decoder, loader, top_k=3, num_sam
         with torch.no_grad():
             image_feat = encoder(images[i].unsqueeze(0))
             dummy_input = torch.zeros((1, 1, 768)).to(device)
-            pred_embed = decoder(dummy_input, image_feat).squeeze().cpu().numpy()
+            pred_embed = decoder(dummy_input, image_feat).squeeze()
+            # Normalize predicted embeddings for InfoNCE compatibility
+            pred_embed = F.normalize(pred_embed.unsqueeze(0), p=2, dim=1).squeeze()
             predicted_embeddings.append(pred_embed)
 
     # Step 3: Compare each prediction to all in-batch caption embeddings
     for i in range(min(num_samples, len(images))):  # Limit to specified samples for display
         pred_embed = predicted_embeddings[i]
 
-        sims = F.cosine_similarity(
-            torch.tensor(pred_embed).unsqueeze(0),
-            torch.tensor(caption_embeddings),
-            dim=1
-        ).numpy()
+        # Use temperature-scaled similarity for InfoNCE compatibility
+        sims = torch.matmul(pred_embed.unsqueeze(0), caption_embeddings.T) / temperature
+        sims = sims.squeeze().cpu().numpy()
 
         top_indices = sims.argsort()[-top_k:][::-1]
 
@@ -123,7 +125,7 @@ def test_captioning_batch_from_itself(encoder, decoder, loader, top_k=3, num_sam
 # ====================
 # COMPARE PERFORMANCE WITH LSTM MODEL
 # ====================
-def compare_with_lstm(image, lstm_decoder, transformer_decoder, encoder, captions):
+def compare_with_lstm(image, lstm_decoder, transformer_decoder, encoder, captions, temperature=0.07):
     """Compare the performance of the LSTM and transformer decoders on a single image"""
     from caption_lstm import CaptionLSTM
     
@@ -133,26 +135,25 @@ def compare_with_lstm(image, lstm_decoder, transformer_decoder, encoder, caption
         dummy_input = torch.zeros((1, 1, 768)).to(device)
         
         # Get predictions from both models
-        lstm_embed = lstm_decoder(dummy_input, image_feat).squeeze().cpu().numpy()
-        transformer_embed = transformer_decoder(dummy_input, image_feat).squeeze().cpu().numpy()
+        lstm_embed = lstm_decoder(dummy_input, image_feat).squeeze()
+        transformer_embed = transformer_decoder(dummy_input, image_feat).squeeze()
         
         # Encode ground truth captions
         caption_embeddings = torch.stack([
             get_caption_embedding(c).squeeze() for c in captions
-        ]).cpu().numpy()
+        ]).to(device)
         
-        # Calculate similarities
-        lstm_sims = F.cosine_similarity(
-            torch.tensor(lstm_embed).unsqueeze(0),
-            torch.tensor(caption_embeddings),
-            dim=1
-        ).numpy()
+        # Normalize all embeddings for InfoNCE compatibility
+        lstm_embed = F.normalize(lstm_embed.unsqueeze(0), p=2, dim=1).squeeze()
+        transformer_embed = F.normalize(transformer_embed.unsqueeze(0), p=2, dim=1).squeeze()
+        caption_embeddings = F.normalize(caption_embeddings, p=2, dim=1)
         
-        transformer_sims = F.cosine_similarity(
-            torch.tensor(transformer_embed).unsqueeze(0),
-            torch.tensor(caption_embeddings),
-            dim=1
-        ).numpy()
+        # Calculate similarities using temperature scaling
+        lstm_sims = torch.matmul(lstm_embed.unsqueeze(0), caption_embeddings.T) / temperature
+        lstm_sims = lstm_sims.squeeze().cpu().numpy()
+        
+        transformer_sims = torch.matmul(transformer_embed.unsqueeze(0), caption_embeddings.T) / temperature
+        transformer_sims = transformer_sims.squeeze().cpu().numpy()
         
         # Get top results
         lstm_top_indices = lstm_sims.argsort()[-3:][::-1]
@@ -188,6 +189,8 @@ if __name__ == "__main__":
                         help='Number of samples to evaluate')
     parser.add_argument('--topk', type=int, default=3, 
                         help='Number of top predictions to show')
+    parser.add_argument('--temperature', type=float, default=0.07, 
+                        help='Temperature for InfoNCE similarity scaling')
     
     args = parser.parse_args()
     
@@ -210,7 +213,8 @@ if __name__ == "__main__":
     
     # Run test with transformer decoder
     test_captioning_batch_from_itself(encoder, transformer_decoder, loader, 
-                                     top_k=args.topk, num_samples=args.samples)
+                                     top_k=args.topk, num_samples=args.samples,
+                                     temperature=args.temperature)
     
     # Optionally compare with LSTM model
     if args.compare:
@@ -228,7 +232,7 @@ if __name__ == "__main__":
             
             # Compare the first image
             compare_with_lstm(batch['image'][0], lstm_decoder, transformer_decoder, 
-                              encoder, batch['caption'])
+                             encoder, batch['caption'], temperature=args.temperature)
             
         except Exception as e:
             print(f"Could not compare with LSTM model: {e}") 
