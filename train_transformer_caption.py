@@ -30,7 +30,7 @@ def get_args():
     parser = argparse.ArgumentParser(description='Train a transformer-based medical image captioning model')
     
     # Data parameters
-    parser.add_argument('--dataset', type=str, default='med_train', help='Dataset name')
+    parser.add_argument('--dataset', type=str, default='medCapAll', help='Dataset name')
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size')
     parser.add_argument('--create_new_dataset', action='store_true', help='Create a new dataset')
     
@@ -49,9 +49,9 @@ def get_args():
     parser.add_argument('--encoder_lr', type=float, default=1e-5, 
                         help='Separate learning rate for encoder (if not frozen)')
     parser.add_argument('--weight_decay', type=float, default=1e-5, help='Weight decay')
-    parser.add_argument('--warmup_epochs', type=int, default=2, help='Warmup epochs')
+    parser.add_argument('--warmup_epochs', type=int, default=0, help='Warmup epochs')
     parser.add_argument('--checkpoint_dir', type=str, default='checkpoints', help='Checkpoint directory')
-    parser.add_argument('--checkpoint_freq', type=int, default=5, help='Checkpoint frequency (epochs)')
+    parser.add_argument('--checkpoint_freq', type=int, default=2, help='Checkpoint frequency (epochs)')
     parser.add_argument('--resume', type=str, default=None, help='Path to checkpoint to resume from')
     
     # Loss parameters
@@ -63,10 +63,17 @@ def get_args():
 # ====================
 # BERT MODEL FOR CAPTION EMBEDDING
 # ====================
+# def load_bert_model():
+#     print("Loading BERT model for caption embedding...")
+#     tokenizer = BertTokenizer.from_pretrained("./MediCareBertTokenizer")
+#     bert_model = BertModel.from_pretrained("./MediCareBertModel").to(device)
+#     bert_model.eval()  # BERT is used for inference only
+#     return tokenizer, bert_model
+
 def load_bert_model():
     print("Loading BERT model for caption embedding...")
-    tokenizer = BertTokenizer.from_pretrained("./MediCareBertTokenizer")
-    bert_model = BertModel.from_pretrained("./MediCareBertModel").to(device)
+    tokenizer = BertTokenizer.from_pretrained("./MediCareBert")
+    bert_model = BertModel.from_pretrained("./MediCareBert").to(device)
     bert_model.eval()  # BERT is used for inference only
     return tokenizer, bert_model
 
@@ -240,8 +247,8 @@ def main():
     print("Creating data loaders...")
     # Define filters for medical images
     caption_filters = [
-        {'field': 'label', 'string_list': ['mri', 'head']},
-        {'field': 'caption', 'string_list': ['showing', 'demonstrates', 'reveals'], 'operator': 'any'}
+        {'field': 'label', 'string_list': ['radiology']},
+        {'field': 'caption', 'string_list': [], 'operator': 'any'}
     ]
     
     # Create train and validation loaders
@@ -274,7 +281,7 @@ def main():
     
     decoder = TransformerMedicalDecoder(
         model_name=args.transformer_model,
-        image_embed_size=384,  # Match DeiT output
+        image_embed_size=args.encoder_embed_size,  # Match encoder embed size (768)
         freeze_base=False  # Allow full fine-tuning
     ).to(device)
     

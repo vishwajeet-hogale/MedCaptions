@@ -1,0 +1,1 @@
+python new_inference.py --image_path "/Users/vishwajeethogale/Desktop/Master's/Sem2/CS6140-Machine Learning/MedCaptions/medical_datasets/medCapAll2/images/PMC5/PMC51/PMC514718_1476-7120-2-13-1_undivided_1_1.webp" --top_k 5
