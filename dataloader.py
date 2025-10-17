@@ -31,7 +31,7 @@ class MultiCaReDataset(Dataset):
             if not filters:
                 # Default filters to get MRI images with captions
                 filters = [
-                    {'field': 'label', 'string_list': ['mri', 'head']},
+                    {'field': 'label', 'string_list': ['mri']},
                     {'field': 'caption', 'string_list': [''], 'operator': 'any'}  # Any image with caption
                 ]
             create_multicare_dataset(dataset_name, filters, dataset_directory)
@@ -290,14 +290,14 @@ def get_multicare_dataloader(dataset_name, batch_size=16, shuffle=True, num_work
 if __name__ == "__main__":
     # Define filters for medical images with descriptive captions
     caption_filters = [
-        {'field': 'label', 'string_list': ['mri', 'head']},
+        {'field': 'label', 'string_list': ['mri']},
         # Get images with meaningful captions (avoid empty captions)
-        {'field': 'caption', 'string_list': ['showing', 'demonstrates', 'reveals'], 'operator': 'any'}
+        {'field': 'caption', 'string_list': [], 'operator': 'any'}
     ]
     
     # Print the dataset directory structure to help debugging
     print("\nExamining directory structure:")
-    dataset_dir = 'medical_datasets/med_test'
+    dataset_dir = 'medical_datasets/whole_dataset'
     if os.path.exists(dataset_dir):
         print(f"Contents of {dataset_dir}:")
         for item in os.listdir(dataset_dir):
@@ -311,7 +311,7 @@ if __name__ == "__main__":
     try:
         # Create and get a dataloader
         loader = get_multicare_dataloader(
-            dataset_name='med_test',
+            dataset_name='whole_dataset',
             batch_size=8,
             create_new=True,
             filters=caption_filters
