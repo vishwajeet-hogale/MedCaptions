@@ -1,7 +1,12 @@
-import os
+"""
+Test script for MultiCaRe dataset loading functionality.
+
+This script tests the basic functionality of the MultiCaRe dataset loader
+by displaying sample images and their captions.
+"""
 import matplotlib.pyplot as plt
-from PIL import Image
 from multiversity.multicare_dataset import MedicalDatasetCreator
+
 
 def test_multicare_loader(dataset_name='test_sample', num_samples=1):
     """

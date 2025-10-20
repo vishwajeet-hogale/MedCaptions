@@ -1,6 +1,13 @@
+"""
+Transformer-based decoder for medical image caption generation.
+
+This module uses pre-trained biomedical transformers (e.g., PubMedBERT) 
+to generate caption embeddings from image features.
+"""
 import torch
 import torch.nn as nn
-from transformers import AutoModel, AutoTokenizer
+from transformers import AutoModel
+
 
 class TransformerMedicalDecoder(nn.Module):
     def __init__(self, 

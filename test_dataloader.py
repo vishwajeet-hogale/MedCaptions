@@ -1,13 +1,18 @@
+"""
+Test suite for MultiCaRe dataloader functionality.
+
+This script performs comprehensive testing of the MultiCaRe dataset loader,
+including dataset creation, image loading, and batch processing.
+"""
 import os
-import sys
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
-from PIL import Image
 import time
 
+
 def separator(title):
-    """Print a section separator with title."""
+    """Print a formatted section separator with title."""
     print("\n" + "="*80)
     print(f" {title} ".center(80, "="))
     print("="*80 + "\n")

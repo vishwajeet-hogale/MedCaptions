@@ -1,9 +1,15 @@
+"""
+Caption generation script for medical images.
+
+This script loads a trained model and generates captions for medical images
+by finding the most similar caption from a reference database using embedding similarity.
+"""
 import torch
 import torch.nn.functional as F
 from transformers import BertTokenizer, BertModel
 from caption_lstm import CaptionLSTM
 from deit_encoder import DeiTMedicalEncoder
-from dataloader import get_multicare_dataloader  # Adjust if needed
+from dataloader import get_multicare_dataloader
 from torchvision import transforms
 import matplotlib.pyplot as plt
 import numpy as np
@@ -110,7 +116,7 @@ def test_captioning_batch_from_itself(loader, top_k=3):
 # ====================
 # MAIN EXECUTION
 # ====================
-if __name__ == "_main_":
+if __name__ == "__main__":
     # Define dataset filters
     caption_filters = [
         {'field': 'label', 'string_list': ['mri', 'head']},

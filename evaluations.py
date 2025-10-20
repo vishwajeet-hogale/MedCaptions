@@ -1,3 +1,9 @@
+"""
+Evaluation script for medical image captioning models.
+
+This script evaluates caption generation quality using standard NLP metrics
+including BLEU (1-4) and METEOR scores.
+"""
 import torch
 import torch.nn.functional as F
 import nltk
@@ -7,12 +13,12 @@ from deit_encoder import DeiTMedicalEncoder
 from dataloader import get_multicare_dataloader
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 from nltk.translate.meteor_score import single_meteor_score
-#from rouge_score import rouge_scorer
 from tqdm import tqdm
-nltk.download('punkt_tab')
+
 # Download NLTK resources
-nltk.download('punkt')
-nltk.download('wordnet')
+nltk.download('punkt', quiet=True)
+nltk.download('punkt_tab', quiet=True)
+nltk.download('wordnet', quiet=True)
 
 # ===========================
 # DEVICE SETUP
@@ -213,7 +219,7 @@ def evaluate(dataloader, num_samples=50):
 # ===========================
 # MAIN EXECUTION
 # ===========================
-if _name_ == "_main_":
+if __name__ == "__main__":
     # Load test dataloader
     loader = get_multicare_dataloader(
         dataset_name='med_test',

@@ -1,20 +1,23 @@
+"""
+Training script for medical image captioning models.
+
+This script supports both LSTM and Transformer-based decoder architectures
+for generating medical image captions.
+"""
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.optim.lr_scheduler import ReduceLROnPlateau, LambdaLR
+from torch.optim.lr_scheduler import LambdaLR
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
 from transformers import BertTokenizer, BertModel
-import numpy as np
-from tqdm import tqdm
 import matplotlib.pyplot as plt
 import os
 import argparse
 import time
 import math
-from datetime import datetime
+from tqdm import tqdm
 
-# Import both architectures
+# Import model architectures
 from caption_lstm import CaptionLSTM 
 from transformer_decoder import TransformerMedicalDecoder
 from deit_encoder import DeiTMedicalEncoder
@@ -61,11 +64,19 @@ def compute_info_nce_loss(embeddings_a, embeddings_b, temperature=0.07):
 # ====================
 # BERT MODEL FOR CAPTION EMBEDDING
 # ====================
-def load_bert_model():
-    """Load BERT model for caption embedding"""
+def load_bert_model(tokenizer_path="./MediCareBertTokenizer", model_path="./MediCareBertModel"):
+    """Load BERT model for caption embedding
+    
+    Args:
+        tokenizer_path (str): Path to BERT tokenizer
+        model_path (str): Path to BERT model
+        
+    Returns:
+        tuple: (tokenizer, bert_model)
+    """
     print("Loading BERT model for caption embedding...")
-    tokenizer = BertTokenizer.from_pretrained("/Users/zamfiraluca/Desktop/MedCaptions/MediCareBertTokenizer", local_files_only=True)
-    bert_model = BertModel.from_pretrained("/Users/zamfiraluca/Desktop/MedCaptions/MediCareBertModel").to(device)
+    tokenizer = BertTokenizer.from_pretrained(tokenizer_path, local_files_only=True)
+    bert_model = BertModel.from_pretrained(model_path).to(device)
     bert_model.eval()  # BERT is used for inference only
     return tokenizer, bert_model
 
@@ -152,6 +163,10 @@ def get_args():
     parser.add_argument('--encoder_embed_size', type=int, default=768, help='Encoder embedding size')
     parser.add_argument('--encoder_model', type=str, default='deit_small_patch16_224', 
                         help='Encoder model variant')
+    parser.add_argument('--bert_tokenizer_path', type=str, default='./MediCareBertTokenizer',
+                        help='Path to BERT tokenizer for caption embedding')
+    parser.add_argument('--bert_model_path', type=str, default='./MediCareBertModel',
+                        help='Path to BERT model for caption embedding')
     
     # Training parameters
     parser.add_argument('--epochs', type=int, default=30, help='Number of epochs')
@@ -376,7 +391,7 @@ def main():
     )
     
     # Load BERT model for caption embedding
-    tokenizer, bert_model = load_bert_model()
+    tokenizer, bert_model = load_bert_model(args.bert_tokenizer_path, args.bert_model_path)
     
     # Initialize encoder (same for both architectures)
     print("Initializing encoder...")

@@ -1,8 +1,13 @@
+"""
+DeiT-based encoder for medical image feature extraction.
+
+This module uses Data-efficient image Transformers (DeiT) for encoding
+medical images into feature embeddings.
+"""
 import torch
 import torch.nn as nn
 import timm
-import torch.nn.functional as F
-from torch.utils.data import DataLoader, Dataset
+
 
 class DeiTMedicalEncoder(nn.Module):
     def __init__(self, embed_size=384, model_name='deit_small_patch16_224', pretrained=True):

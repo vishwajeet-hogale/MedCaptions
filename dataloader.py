@@ -1,14 +1,26 @@
+"""
+PyTorch DataLoader for MultiCaRe medical image captioning dataset.
+
+This module provides classes and functions to load and preprocess medical images
+and their associated captions from the MultiCaRe dataset.
+"""
 import os
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from PIL import Image
-import numpy as np
 from multiversity.multicare_dataset import MedicalDatasetCreator
 import json
 
+
 class MultiCaReDataset(Dataset):
-    """Dataset class for loading MultiCaRe medical images and captions for image captioning."""
+    """
+    PyTorch Dataset class for MultiCaRe medical images and captions.
+    
+    This dataset loads medical images with their corresponding captions,
+    applies preprocessing transforms, and provides them in a format suitable
+    for training image captioning models.
+    """
     
     def __init__(self, dataset_directory='medical_datasets', dataset_name='brain_tumor_mri', 
                  transform=None, create_dataset=False, filters=None):
@@ -136,7 +148,6 @@ class MultiCaReDataset(Dataset):
                         return path
         
         # Print diagnostic info for the first few missing items
-        global missing_image_counter
         if not hasattr(self, 'missing_image_counter'):
             self.missing_image_counter = 0
         
